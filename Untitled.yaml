@@ -1,0 +1,157 @@
+application: "OWASP Top-10 Educational Lab (vulnerable .NET minimal API)"
+language: "csharp"
+summary: "Machine-readable list of vulnerabilities discovered in the provided Program.cs vulnerable lab."
+generated_at: "2025-10-29T00:00:00Z"
+
+vulnerabilities:
+  - id: A01
+    name: "Broken Access Control"
+    cwe: "CWE-200 / CWE-284"
+    endpoints: ["/notes"]
+    owasp_category: "A01: Broken Access Control"
+    severity: "High"
+    exploitability: true
+
+  - id: A02
+    name: "Cryptographic Failures (plaintext secrets / weak IV/key)"
+    cwe: "CWE-327 / CWE-312"
+    endpoints: ["/crypto"]
+    owasp_category: "A02: Cryptographic Failures"
+    severity: "High"
+    exploitability: true
+
+  - id: A03
+    name: "SQL Injection"
+    cwe: "CWE-89"
+    endpoints: ["/login", "/search", "/register", "/upload", "/addnote"]
+    owasp_category: "A03: Injection"
+    severity: "High"
+    exploitability: true
+
+  - id: A04
+    name: "Insecure Design (no auth, no business logic checks)"
+    cwe: "CWE-336 (Business Logic)"
+    endpoints: ["/transfer"]
+    owasp_category: "A04: Insecure Design"
+    severity: "High"
+    exploitability: true
+
+  - id: A05
+    name: "Security Misconfiguration (information leakage)"
+    cwe: "CWE-200"
+    endpoints: ["/config", "/log"]
+    owasp_category: "A05: Security Misconfiguration"
+    severity: "Medium"
+    exploitability: true
+
+  - id: A06
+    name: "Vulnerable / Outdated Components (simulated)"
+    cwe: "N/A"
+    endpoints: ["/components"]
+    owasp_category: "A06: Vulnerable & Outdated Components"
+    severity: "Medium"
+    exploitability: true
+
+  - id: A07
+    name: "Identification & Authentication Failures (plaintext password storage)"
+    cwe: "CWE-256 / CWE-521"
+    endpoints: ["/register", "/login"]
+    owasp_category: "A07: Identification & Authentication Failures"
+    severity: "High"
+    exploitability: true
+
+  - id: A08
+    name: "Software and Data Integrity Failures (unverified updates)"
+    cwe: "CWE-347"
+    endpoints: ["/update"]
+    owasp_category: "A08: Software Integrity Failures"
+    severity: "Medium"
+    exploitability: true
+
+  - id: A09
+    name: "Logging & Monitoring Failures (detailed exceptions to users)"
+    cwe: "CWE-209"
+    endpoints: ["/log"]
+    owasp_category: "A09: Logging & Monitoring Failures"
+    severity: "Medium"
+    exploitability: true
+
+  - id: A10
+    name: "Server-Side Request Forgery (SSRF)"
+    cwe: "CWE-918"
+    endpoints: ["/fetch"]
+    owasp_category: "A10: SSRF"
+    severity: "High"
+    exploitability: true
+
+  - id: XV1
+    name: "Stored Cross-Site Scripting (Stored XSS)"
+    cwe: "CWE-79"
+    endpoints: ["/addnote", "/notes"]
+    owasp_category: "Cross-Site Scripting"
+    severity: "High"
+    exploitability: true
+
+  - id: XV2
+    name: "Reflected Cross-Site Scripting (Reflected XSS)"
+    cwe: "CWE-79"
+    endpoints: ["/echo", "/fetch"]
+    owasp_category: "Cross-Site Scripting"
+    severity: "High"
+    exploitability: true
+
+  - id: FS1
+    name: "Unrestricted File Upload"
+    cwe: "CWE-434"
+    endpoints: ["/upload"]
+    owasp_category: "File Upload"
+    severity: "High"
+    exploitability: true
+
+  - id: FS2
+    name: "Insecure File Download / IDOR"
+    cwe: "CWE-639"
+    endpoints: ["/download"]
+    owasp_category: "Access Control / Insecure Direct Object Reference"
+    severity: "High"
+    exploitability: true
+
+  - id: RCE1
+    name: "Command Injection / Remote Code Execution"
+    cwe: "CWE-78"
+    endpoints: ["/cmd"]
+    owasp_category: "Code Injection"
+    severity: "Critical"
+    exploitability: true
+
+  - id: GEN1
+    name: "No CSRF Protection"
+    cwe: "CWE-352"
+    endpoints: ["/register", "/upload", "/addnote"]
+    owasp_category: "CSRF"
+    severity: "Medium"
+    exploitability: true
+
+  - id: GEN2
+    name: "Insecure Cookie Handling"
+    cwe: "CWE-614"
+    endpoints: ["/register"]
+    owasp_category: "Session Management"
+    severity: "Medium"
+    exploitability: true
+
+  - id: GEN3
+    name: "Missing HTTPS Enforcement (Insecure Transport)"
+    cwe: "CWE-319"
+    endpoints: ["global"]
+    owasp_category: "Config/Transport Security"
+    severity: "High"
+    exploitability: true
+
+  - id: GEN4
+    name: "Lack of Rate Limiting / Brute-force Protection"
+    cwe: "CWE-307"
+    endpoints: ["/login", "/transfer", "/cmd"]
+    owasp_category: "Availability / Abuse"
+    severity: "Medium"
+    exploitability: true

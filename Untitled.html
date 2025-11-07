@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Vulnerable Lab — Frontend (LOCAL ONLY)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:Inter,system-ui,Segoe UI,Arial;margin:24px;background:#f8f9fb;color:#111}
+    .warn{background:#ffe8e8;border:1px solid #ffb3b3;padding:12px;margin-bottom:16px}
+    .card{background:#fff;border:1px solid #ddd;padding:12px;margin:12px 0;border-radius:6px}
+    label{display:block;margin-top:8px}
+    input,textarea,button,select{padding:6px;margin-top:6px;width:100%;box-sizing:border-box}
+    .small{width:auto;display:inline-block}
+    pre{background:#111;color:#fff;padding:8px;border-radius:4px;overflow:auto}
+  </style>
+</head>
+<body>
+  <h1>Vulnerable Lab — Frontend Demo</h1>
+
+  <div class="warn">
+    <strong>WARNING:</strong> This page is intentionally vulnerable for testing scanners/tools. Run only on an isolated VM/container or localhost. Do NOT expose to the public internet.
+  </div>
+
+  <div class="card">
+    <h3>Token</h3>
+    <p>This frontend reads <code>?token=...</code> from the URL and injects it into links/forms automatically.</p>
+    <p>Detected token: <code id="tokenDisplay">(none)</code></p>
+    <p><small>Example open URL: <code>http://localhost:8000/vuln_frontend.html?token=YOURTOKEN</code></small></p>
+  </div>
+
+  <div class="card" id="dom-xss">
+    <h3>DOM XSS / Reflected XSS Demo</h3>
+    <p>Provide a <code>?q=</code> parameter in the URL and it will be injected unsafely into the page (for scanner testing).</p>
+    <div id="reflectArea" style="border:1px dashed #ccc;padding:8px;margin-top:8px">Reflected content will appear here</div>
+  </div>
+
+  <div class="card">
+    <h3>Login (SQLi vulnerable backend)</h3>
+    <form id="loginForm" method="get" action="http://localhost:5000/login">
+      <label>Username <input name="user" value="admin"></label>
+      <label>Password <input name="pass" value="123"></label>
+      <input type="hidden" name="token" id="login_token">
+      <button type="submit">Login (GET)</button>
+    </form>
+    <p><small>Note: backend concatenates SQL (vulnerable to SQLi)</small></p>
+  </div>
+
+  <div class="card">
+    <h3>Register (plaintext password storage)</h3>
+    <form id="registerForm" method="post" action="http://localhost:5000/register">
+      <label>Username <input name="user" value="tester"></label>
+      <label>Password <input type="password" name="pass" value="pass"></label>
+      <input type="hidden" name="token" id="register_token">
+      <button type="submit">Register (POST)</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Search (SQLi via LIKE)</h3>
+    <form id="searchForm" method="get" action="http://localhost:5000/search">
+      <label>Query <input name="q" placeholder="search pattern like %admin%"></label>
+      <input type="hidden" name="token" id="search_token">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Notes (stored XSS)</h3>
+    <form id="addNote" method="post" action="http://localhost:5000/addnote">
+      <label>Owner <input name="owner" value="attacker"></label>
+      <label>Content <textarea name="content" rows="3">&lt;script&gt;alert('stored-xss')&lt;/script&gt;</textarea></label>
+      <input type="hidden" name="token" id="note_token">
+      <button type="submit">Add Note (POST)</button>
+    </form>
+    <p><small>Visit <a id="notesLink" href="#" target="_blank">/notes</a> to view all notes (stored XSS will appear unsanitized).</small></p>
+  </div>
+
+  <div class="card">
+    <h3>Unrestricted Upload</h3>
+    <form id="uploadForm" enctype="multipart/form-data" method="post" action="http://localhost:5000/upload">
+      <label>Owner <input name="owner" value="uploader"></label>
+      <label>File <input type="file" name="file"></label>
+      <input type="hidden" name="token" id="upload_token">
+      <button type="submit">Upload</button>
+    </form>
+    <p><small>No server-side validation in the vulnerable backend — can be used to upload webshells if backend executes files.</small></p>
+  </div>
+
+  <div class="card">
+    <h3>SSRF / Fetch remote</h3>
+    <form id="fetchForm" method="get" action="http://localhost:5000/fetch">
+      <label>URL to fetch <input name="url" value="http://localhost:5000/config"></label>
+      <input type="hidden" name="token" id="fetch_token">
+      <button type="submit">Fetch</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Command Execution (Dangerous)</h3>
+    <form id="cmdForm" method="get" action="http://localhost:5000/cmd">
+      <label>Command <input name="c" value="whoami"></label>
+      <input type="hidden" name="token" id="cmd_token">
+      <button type="submit">Run Command</button>
+    </form>
+    <p><small>Calls the vulnerable server's command execution endpoint (DO NOT USE ON PRODUCTION).</small></p>
+  </div>
+
+  <div class="card">
+    <h3>Reflected XSS Endpoint (frontend demo)</h3>
+    <form id="echoForm" onsubmit="return false;">
+      <label>Enter text to reflect <input id="echoInput" placeholder="type something"></label>
+      <button onclick="unsafeReflect()">Reflect (unsafe)</button>
+    </form>
+    <div id="echoResult" style="border:1px solid #eee;padding:8px;margin-top:8px">Echo result</div>
+    <p><small>The reflect button uses <code>innerHTML</code> unsafely to demonstrate DOM XSS.</small></p>
+  </div>
+
+  <hr/>
+  <small>Created for local vulnerability testing only. Delete when done.</small>
+
+<script>
+/*
+  Behavior:
+  - Reads token from URL (?token=...)
+  - Injects token into all forms (hidden input) and appends token as query param to form action on submit
+  - Adjusts notesLink to include token so it opens properly
+  - Reflects ?q= into the page intentionally unsafely (DOM XSS demo)
+*/
+
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name) || '';
+}
+const token = getQueryParam('token') || '';
+
+// display token
+document.getElementById('tokenDisplay').textContent = token || '(none)';
+
+// set hidden token inputs
+const tokenIds = ['login_token','register_token','search_token','note_token','upload_token','fetch_token','cmd_token'];
+tokenIds.forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.value = token;
+});
+
+// helper: append token to URL
+function appendTokenToUrl(url, token) {
+  if(!token) return url;
+  try {
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set('token', token);
+    return u.toString();
+  } catch(e) {
+    // fallback simple append
+    return url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+  }
+}
+
+// intercept form submissions to ensure token is present in action (GET & POST)
+function guardForm(formId) {
+  const form = document.getElementById(formId);
+  if(!form) return;
+  form.addEventListener('submit', function(ev) {
+    // ensure hidden input exists (modern browsers) -- already set above
+    // append token as query param to the form.action (useful for GET endpoints and for backends expecting token in URL)
+    if(token) {
+      form.action = appendTokenToUrl(form.action, token);
+    }
+    // allow form to submit normally
+  }, false);
+}
+
+// attach guards
+['loginForm','registerForm','searchForm','addNote','uploadForm','fetchForm','cmdForm'].forEach(guardForm);
+
+// notes link update
+const notesLink = document.getElementById('notesLink');
+if(notesLink) {
+  let href = 'http://localhost:5000/notes';
+  if(token) href = appendTokenToUrl(href, token);
+  notesLink.href = href;
+  notesLink.target = '_blank';
+}
+
+// DOM-reflect q param unsafely (intentional)
+(function reflectQ(){
+  const q = getQueryParam('q');
+  if(!q) return;
+  const area = document.getElementById('reflectArea');
+  // intentionally unsafe: demonstration of DOM XSS for scanners
+  area.innerHTML = "<strong>Reflected q:</strong> " + q;
+})();
+
+// unsafe reflect button
+function unsafeReflect(){
+  const v = document.getElementById('echoInput').value;
+  document.getElementById('echoResult').innerHTML = "You said: " + v; // intentional unsanitized injection
+}
+
+// show console hint if token missing
+if(!token) {
+  console.warn("No token present in URL. If the backend requires token, add ?token=THETOKEN to the frontend URL or place this frontend in the backend webroot so same-origin requests can retrieve the token.");
+}
+</script>
+</body>
+</html>
